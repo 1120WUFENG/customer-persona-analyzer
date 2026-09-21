@@ -427,6 +427,91 @@ input[type="range"] {
   .persona-cards { grid-template-columns: 1fr; }
 }
 
+/* ========== 洞察栏 ========== */
+.insights-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.insight-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.insight-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.insight-card strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.insight-card p {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ========== 策略卡 ========== */
+.persona-strategy {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.strategy-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.persona-strategy ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.persona-strategy li {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 4px 0;
+  padding-left: 16px;
+  position: relative;
+}
+
+.persona-strategy li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--primary-light);
+}
+
+/* ========== 标签 ========== */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge.success { background: rgba(0,184,148,0.15); color: #00b894; }
+.badge.warning { background: rgba(253,203,110,0.15); color: #fdcb6e; }
+.badge.danger { background: rgba(225,112,85,0.15); color: #e17055; }
+
+.stat-value.danger { color: #e17055; }
+
 /* ========== 动画 ========== */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(20px); }
