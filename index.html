@@ -3,17 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>客户画像深度分析平台</title>
+  <title>信用卡客户画像分析平台</title>
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
-  <!-- 顶部导航 -->
   <nav class="navbar">
     <div class="nav-brand">
-      <span class="logo">👤</span>
-      <h1>客户画像深度分析平台</h1>
+      <span class="logo">💳</span>
+      <h1>信用卡客户画像分析平台</h1>
     </div>
     <div class="nav-actions">
       <button id="btnImport" class="btn btn-primary">📥 导入数据</button>
@@ -23,14 +22,24 @@
   </nav>
 
   <main class="container">
-    <!-- 数据输入区 -->
+    <!-- 数据导入 -->
     <section id="dataInput" class="section card">
       <h2>📊 数据导入</h2>
+      <div class="field-hint">
+        <span>支持字段：</span>
+        <span class="tag">客户编号</span><span class="tag">性别</span><span class="tag">年龄</span>
+        <span class="tag">办卡时间</span><span class="tag">办卡单位</span><span class="tag">征信单位</span>
+        <span class="tag">户籍地址</span><span class="tag">居住地址</span><span class="tag">信用额度</span>
+        <span class="tag">还款记录</span><span class="tag">消费记录</span><span class="tag">是否进线投诉</span>
+        <span class="tag">逾期天数</span><span class="tag">最后还款时间</span><span class="tag">还款金额</span>
+        <span class="tag">是否有房贷</span><span class="tag">电话沟通记录</span><span class="tag">逾期金额</span>
+        <span class="tag">是否有套现</span><span class="tag">套现商家名称</span>
+      </div>
       <div class="upload-area" id="dropZone">
         <div class="upload-icon">📁</div>
         <p>拖拽 CSV/JSON 文件到此处，或 <label for="fileInput" class="link">点击选择文件</label></p>
         <input type="file" id="fileInput" accept=".csv,.json" hidden>
-        <small>支持 CSV、JSON 格式 · 自动识别 20+ 字段</small>
+        <small>自动识别字段名，支持多种命名方式</small>
       </div>
       <div class="data-preview" id="dataPreview" style="display:none">
         <div class="preview-header">
@@ -48,23 +57,40 @@
       <h2>🔬 分析控制台</h2>
       <div class="controls">
         <div class="control-group">
-          <label>分析维度（可多选）</label>
+          <label>分析维度</label>
           <div class="checkbox-group" id="dimensions">
-            <label><input type="checkbox" value="age" checked> 年龄分布</label>
-            <label><input type="checkbox" value="gender" checked> 性别比例</label>
-            <label><input type="checkbox" value="region" checked> 地域分布</label>
-            <label><input type="checkbox" value="consumption" checked> 消费水平</label>
-            <label><input type="checkbox" value="frequency" checked> 活跃频率</label>
-            <label><input type="checkbox" value="preference" checked> 偏好标签</label>
-            <label><input type="checkbox" value="channel" checked> 渠道来源</label>
-            <label><input type="checkbox" value="rfm" checked> RFM 分群</label>
-            <label><input type="checkbox" value="clv" checked> 生命周期价值</label>
-            <label><input type="checkbox" value="churn" checked> 流失风险</label>
-            <label><input type="checkbox" value="aov" checked> 客单价</label>
-            <label><input type="checkbox" value="returnRate" checked> 退货率</label>
-            <label><input type="checkbox" value="score" checked> 满意度评分</label>
-            <label><input type="checkbox" value="loyalty" checked> 忠诚度</label>
-            <label><input type="checkbox" value="trend" checked> 消费趋势</label>
+            <div class="dim-group">
+              <span class="dim-title">👤 基础画像</span>
+              <label><input type="checkbox" value="age" checked> 年龄分布</label>
+              <label><input type="checkbox" value="gender" checked> 性别比例</label>
+              <label><input type="checkbox" value="region" checked> 地域分布</label>
+              <label><input type="checkbox" value="cardOrg" checked> 办卡单位</label>
+              <label><input type="checkbox" value="cardAge" checked> 卡龄分布</label>
+            </div>
+            <div class="dim-group">
+              <span class="dim-title">💰 额度与消费</span>
+              <label><input type="checkbox" value="creditLimit" checked> 信用额度</label>
+              <label><input type="checkbox" value="consumption" checked> 消费记录</label>
+            </div>
+            <div class="dim-group">
+              <span class="dim-title">⚠️ 逾期与风险</span>
+              <label><input type="checkbox" value="overdue" checked> 逾期天数</label>
+              <label><input type="checkbox" value="overdueAmount" checked> 逾期金额</label>
+              <label><input type="checkbox" value="riskLevel" checked> 风险等级</label>
+            </div>
+            <div class="dim-group">
+              <span class="dim-title">💳 还款行为</span>
+              <label><input type="checkbox" value="repayment" checked> 还款记录</label>
+              <label><input type="checkbox" value="repayAbility" checked> 还款能力</label>
+              <label><input type="checkbox" value="repayWilling" checked> 还款意愿</label>
+            </div>
+            <div class="dim-group">
+              <span class="dim-title">🔍 风控指标</span>
+              <label><input type="checkbox" value="cashOut" checked> 套现记录</label>
+              <label><input type="checkbox" value="complaint" checked> 投诉记录</label>
+              <label><input type="checkbox" value="phoneStatus" checked> 电话沟通</label>
+              <label><input type="checkbox" value="mortgage" checked> 房贷情况</label>
+            </div>
           </div>
         </div>
         <div class="control-group">
@@ -78,36 +104,32 @@
 
     <!-- 分析结果 -->
     <section id="results" class="section" style="display:none">
-      <!-- 智能洞察 -->
       <div id="insights" class="insights-bar"></div>
-
-      <!-- 概览卡片 -->
       <div class="overview-cards" id="overviewCards"></div>
 
-      <!-- 图表区域 -->
       <div class="charts-grid">
         <div class="card chart-card"><h3>👥 客户分群</h3><canvas id="clusterChart"></canvas></div>
-        <div class="card chart-card"><h3>📊 RFM 分群分布</h3><canvas id="rfmChart"></canvas></div>
-        <div class="card chart-card"><h3>📈 年龄分布</h3><canvas id="ageChart"></canvas></div>
+        <div class="card chart-card"><h3>⚠️ 风险等级分布</h3><canvas id="riskLevelChart"></canvas></div>
+        <div class="card chart-card"><h3>📊 年龄分布</h3><canvas id="ageChart"></canvas></div>
         <div class="card chart-card"><h3>🌍 地域分布</h3><canvas id="regionChart"></canvas></div>
-        <div class="card chart-card"><h3>💰 消费水平</h3><canvas id="consumptionChart"></canvas></div>
-        <div class="card chart-card"><h3>📈 活跃频率</h3><canvas id="frequencyChart"></canvas></div>
-        <div class="card chart-card"><h3>🏷️ 偏好标签</h3><canvas id="preferenceChart"></canvas></div>
-        <div class="card chart-card"><h3>📱 渠道来源</h3><canvas id="channelChart"></canvas></div>
-        <div class="card chart-card"><h3>💎 生命周期价值 (CLV)</h3><canvas id="clvChart"></canvas></div>
-        <div class="card chart-card"><h3>⚠️ 流失风险</h3><canvas id="churnChart"></canvas></div>
-        <div class="card chart-card"><h3>🛒 客单价分布</h3><canvas id="aovChart"></canvas></div>
-        <div class="card chart-card"><h3>📦 退货率</h3><canvas id="returnRateChart"></canvas></div>
-        <div class="card chart-card"><h3>⭐ 满意度评分</h3><canvas id="scoreChart"></canvas></div>
-        <div class="card chart-card"><h3>🏅 忠诚度分布</h3><canvas id="loyaltyChart"></canvas></div>
-        <div class="card chart-card"><h3>📊 消费趋势</h3><canvas id="trendChart"></canvas></div>
+        <div class="card chart-card"><h3>💳 信用额度</h3><canvas id="creditLimitChart"></canvas></div>
+        <div class="card chart-card"><h3>⏰ 逾期天数</h3><canvas id="overdueChart"></canvas></div>
+        <div class="card chart-card"><h3>💰 逾期金额</h3><canvas id="overdueAmountChart"></canvas></div>
+        <div class="card chart-card"><h3>📋 还款记录</h3><canvas id="repaymentChart"></canvas></div>
+        <div class="card chart-card"><h3>💪 还款能力评分</h3><canvas id="repayAbilityChart"></canvas></div>
+        <div class="card chart-card"><h3>🤝 还款意愿评分</h3><canvas id="repayWillingChart"></canvas></div>
+        <div class="card chart-card"><h3>🔍 套现记录</h3><canvas id="cashOutChart"></canvas></div>
+        <div class="card chart-card"><h3>📢 投诉记录</h3><canvas id="complaintChart"></canvas></div>
+        <div class="card chart-card"><h3>📞 电话沟通状态</h3><canvas id="phoneStatusChart"></canvas></div>
+        <div class="card chart-card"><h3>🏠 房贷情况</h3><canvas id="mortgageChart"></canvas></div>
+        <div class="card chart-card"><h3>🏦 办卡单位</h3><canvas id="cardOrgChart"></canvas></div>
+        <div class="card chart-card"><h3>📅 卡龄分布</h3><canvas id="cardAgeChart"></canvas></div>
+        <div class="card chart-card"><h3>🛒 消费记录</h3><canvas id="consumptionChart"></canvas></div>
       </div>
 
-      <!-- 客户画像卡 -->
       <h2 class="section-title">🎯 客户画像</h2>
       <div class="persona-cards" id="personaCards"></div>
 
-      <!-- 详细数据表 -->
       <div class="card">
         <h3>📋 详细数据（前 50 条）</h3>
         <div class="table-wrapper">
@@ -117,7 +139,6 @@
     </section>
   </main>
 
-  <input type="file" id="hiddenFileInput" accept=".csv,.json" hidden>
   <script src="js/analyzer.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/app.js"></script>

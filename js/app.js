@@ -1,5 +1,5 @@
 /**
- * 应用主逻辑 v2
+ * 信用卡客户画像分析 - 应用主逻辑
  */
 
 (function() {
@@ -29,26 +29,18 @@
     insights: document.getElementById('insights')
   };
 
-  // 事件绑定
   els.btnImport.addEventListener('click', () => els.fileInput.click());
   els.fileInput.addEventListener('change', handleFileSelect);
-
   els.dropZone.addEventListener('dragover', (e) => { e.preventDefault(); els.dropZone.classList.add('drag-over'); });
   els.dropZone.addEventListener('dragleave', () => els.dropZone.classList.remove('drag-over'));
-  els.dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    els.dropZone.classList.remove('drag-over');
-    if (e.dataTransfer.files.length > 0) processFile(e.dataTransfer.files[0]);
-  });
+  els.dropZone.addEventListener('drop', (e) => { e.preventDefault(); els.dropZone.classList.remove('drag-over'); if (e.dataTransfer.files.length > 0) processFile(e.dataTransfer.files[0]); });
   els.dropZone.addEventListener('click', (e) => { if (e.target.tagName !== 'LABEL') els.fileInput.click(); });
-
   els.btnSample.addEventListener('click', loadSampleData);
   els.btnAnalyze.addEventListener('click', runAnalysis);
   els.btnExport.addEventListener('click', () => { if (window.lastResults) analyzer.exportReport(window.lastResults); });
   els.btnClear.addEventListener('click', clearData);
   els.clusterCount.addEventListener('input', (e) => { els.clusterLabel.textContent = `${e.target.value} 类`; });
 
-  // 文件处理
   function handleFileSelect(e) { if (e.target.files[0]) processFile(e.target.files[0]); }
 
   async function processFile(file) {
@@ -65,183 +57,150 @@
   function showDataPreview(data) {
     els.dataPreview.style.display = 'block';
     els.dataStats.textContent = `📊 ${data.length} 条记录 | ${Object.keys(data[0]).length} 个字段`;
-
     const fields = Object.keys(data[0]);
     els.previewTable.querySelector('thead').innerHTML = `<tr>${fields.map(f => `<th>${f}</th>`).join('')}</tr>`;
-    const previewRows = data.slice(0, 10);
-    els.previewTable.querySelector('tbody').innerHTML = previewRows.map(row =>
+    els.previewTable.querySelector('tbody').innerHTML = data.slice(0, 10).map(row =>
       `<tr>${fields.map(f => `<td>${row[f] ?? ''}</td>`).join('')}</tr>`
-    ).join('');
-
-    if (data.length > 10) {
-      els.previewTable.querySelector('tbody').innerHTML +=
-        `<tr><td colspan="${fields.length}" style="text-align:center;color:#8b8fa3">... 还有 ${data.length - 10} 条记录</td></tr>`;
-    }
+    ).join('') + (data.length > 10 ? `<tr><td colspan="${fields.length}" style="text-align:center;color:#8b8fa3">... 还有 ${data.length - 10} 条记录</td></tr>` : '');
   }
 
-  function showAnalysisPanel() {
-    els.analysisPanel.style.display = 'block';
-    els.analysisPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+  function showAnalysisPanel() { els.analysisPanel.style.display = 'block'; els.analysisPanel.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 
-  function loadSampleData() {
-    const data = analyzer.loadSampleData();
-    showDataPreview(data);
-    showAnalysisPanel();
-    setTimeout(runAnalysis, 300);
-  }
+  function loadSampleData() { showDataPreview(analyzer.loadSampleData()); showAnalysisPanel(); setTimeout(runAnalysis, 300); }
 
   function runAnalysis() {
     const dimensions = [];
     document.querySelectorAll('#dimensions input:checked').forEach(cb => dimensions.push(cb.value));
     if (dimensions.length === 0) { alert('请至少选择一个分析维度'); return; }
-
-    const clusterCount = parseInt(els.clusterCount.value);
-    const results = analyzer.analyze(dimensions, clusterCount);
-    window.lastResults = results;
-    renderResults(results);
+    window.lastResults = analyzer.analyze(dimensions, parseInt(els.clusterCount.value));
+    renderResults(window.lastResults);
   }
 
   function renderResults(results) {
     els.results.style.display = 'block';
     els.results.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
     renderInsights(results.insights);
     renderOverviewCards(results.overview);
     chartRenderer.renderAll(results);
     renderPersonaCards(results.clusters);
-    renderResultTable(results);
+    renderResultTable();
   }
 
-  // 智能洞察
   function renderInsights(insights) {
     if (!insights || insights.length === 0) return;
     const typeColors = { danger: '#e17055', warning: '#fdcb6e', success: '#00b894', info: '#74b9ff' };
     els.insights.innerHTML = insights.map(i => `
       <div class="insight-card" style="border-left: 4px solid ${typeColors[i.type] || '#74b9ff'}">
         <span class="insight-icon">${i.icon}</span>
-        <div>
-          <strong>${i.title}</strong>
-          <p>${i.text}</p>
-        </div>
+        <div><strong>${i.title}</strong><p>${i.text}</p></div>
       </div>
     `).join('');
   }
 
-  // 概览卡片
-  function renderOverviewCards(overview) {
+  function renderOverviewCards(o) {
     const cards = [
-      { icon: '👥', value: overview.totalCustomers, label: '总客户数' },
-      { icon: '📊', value: overview.avgAge, label: '平均年龄' },
-      { icon: '💰', value: `¥${Number(overview.avgConsumption).toLocaleString()}`, label: '平均消费' },
-      { icon: '💎', value: `¥${Number(overview.avgCLV).toLocaleString()}`, label: '平均 CLV' },
-      { icon: '⚠️', value: `${overview.avgChurnRisk}%`, label: '平均流失风险' },
-      { icon: '🔄', value: `${overview.avgRepurchaseRate}%`, label: '平均复购率' },
-      { icon: '🛒', value: `¥${Number(overview.avgAOV).toLocaleString()}`, label: '平均客单价' },
-      { icon: '📦', value: `${overview.avgReturnRate}%`, label: '平均退货率' },
-      { icon: '👑', value: overview.highValueCount, label: '高价值客户' },
-      { icon: '🚨', value: overview.atRiskCount, label: '高流失风险' },
-      { icon: '🌱', value: overview.newCustomerCount, label: '新客户 (<90天)' },
-      { icon: '🤝', value: overview.loyalCount, label: '高忠诚度客户' }
+      { icon: '👥', value: o.total, label: '总客户数' },
+      { icon: '📊', value: o.avgAge + '岁', label: '平均年龄' },
+      { icon: '💳', value: '¥' + Number(o.avgCreditLimit).toLocaleString(), label: '平均额度' },
+      { icon: '⚠️', value: o.overdueCount + '人', label: `逾期客户 (${o.overdueRate}%)` },
+      { icon: '⏰', value: o.avgOverdueDays + '天', label: '平均逾期天数' },
+      { icon: '💰', value: '¥' + Number(o.avgOverdueAmount).toLocaleString(), label: '平均逾期金额' },
+      { icon: '🔴', value: o.highRiskCount + '人', label: '高风险客户' },
+      { icon: '🔍', value: o.cashOutCount + '人', label: `套现嫌疑 (${o.cashOutRate}%)` },
+      { icon: '📢', value: o.complaintCount + '人', label: `投诉客户 (${o.complaintRate}%)` },
+      { icon: '🏠', value: o.mortgageCount + '人', label: '有房贷客户' },
+      { icon: '💪', value: o.avgRepayAbility, label: '平均还款能力' },
+      { icon: '🤝', value: o.avgRepayWilling, label: '平均还款意愿' }
     ];
-
-    els.overviewCards.innerHTML = cards.map(card => `
-      <div class="overview-card">
-        <div class="icon">${card.icon}</div>
-        <div class="value">${card.value}</div>
-        <div class="label">${card.label}</div>
-      </div>
+    els.overviewCards.innerHTML = cards.map(c => `
+      <div class="overview-card"><div class="icon">${c.icon}</div><div class="value">${c.value}</div><div class="label">${c.label}</div></div>
     `).join('');
   }
 
-  // 画像卡
   function renderPersonaCards(clusters) {
-    els.personaCards.innerHTML = clusters.map(cluster => `
+    els.personaCards.innerHTML = clusters.map(c => `
       <div class="persona-card">
         <div class="persona-header">
-          <div class="persona-avatar">${cluster.emoji}</div>
+          <div class="persona-avatar">${c.emoji}</div>
           <div>
-            <div class="persona-name">${cluster.label}</div>
-            <div class="persona-desc">${cluster.description}</div>
+            <div class="persona-name">${c.label} <span class="pct-badge">${c.percentage}%</span></div>
+            <div class="persona-desc">${c.description}</div>
           </div>
         </div>
 
+        ${c.urgentActions.length > 0 ? `
+        <div class="urgent-actions">
+          ${c.urgentActions.map(a => `<div class="urgent-item">${a}</div>`).join('')}
+        </div>` : ''}
+
         <div class="persona-stats">
-          <div class="stat-item"><div class="stat-label">占比</div><div class="stat-value">${cluster.percentage}%</div></div>
-          <div class="stat-item"><div class="stat-label">人数</div><div class="stat-value">${cluster.members.length}</div></div>
-          <div class="stat-item"><div class="stat-label">平均年龄</div><div class="stat-value">${cluster.avgAge}岁</div></div>
-          <div class="stat-item"><div class="stat-label">平均消费</div><div class="stat-value">¥${Number(cluster.avgConsumption).toLocaleString()}</div></div>
-          <div class="stat-item"><div class="stat-label">客单价</div><div class="stat-value">¥${Number(cluster.avgAOV).toLocaleString()}</div></div>
-          <div class="stat-item"><div class="stat-label">订单数</div><div class="stat-value">${cluster.avgOrderCount}</div></div>
-          <div class="stat-item"><div class="stat-label">CLV</div><div class="stat-value">¥${Number(cluster.avgCLV).toLocaleString()}</div></div>
-          <div class="stat-item"><div class="stat-label">流失风险</div><div class="stat-value ${parseFloat(cluster.avgChurnRisk) > 50 ? 'danger' : ''}">${cluster.avgChurnRisk}%</div></div>
-          <div class="stat-item"><div class="stat-label">复购率</div><div class="stat-value">${cluster.avgRepurchaseRate}%</div></div>
-          <div class="stat-item"><div class="stat-label">退货率</div><div class="stat-value">${cluster.avgReturnRate}%</div></div>
-          <div class="stat-item"><div class="stat-label">最近活跃</div><div class="stat-value">${cluster.avgDaysSinceActive}天前</div></div>
-          <div class="stat-item"><div class="stat-label">性别比</div><div class="stat-value">${cluster.genderRatio.male}:${cluster.genderRatio.female}</div></div>
+          <div class="stat-item"><div class="stat-label">人数</div><div class="stat-value">${c.members.length}</div></div>
+          <div class="stat-item"><div class="stat-label">平均年龄</div><div class="stat-value">${c.avgAge}岁</div></div>
+          <div class="stat-item"><div class="stat-label">平均额度</div><div class="stat-value">¥${Number(c.avgCreditLimit).toLocaleString()}</div></div>
+          <div class="stat-item"><div class="stat-label">风险评分</div><div class="stat-value ${parseFloat(c.avgRiskScore) >= 50 ? 'danger' : ''}">${c.avgRiskScore}</div></div>
+          <div class="stat-item"><div class="stat-label">还款能力</div><div class="stat-value">${c.avgRepayAbility}</div></div>
+          <div class="stat-item"><div class="stat-label">还款意愿</div><div class="stat-value">${c.avgRepayWilling}</div></div>
+          <div class="stat-item"><div class="stat-label">逾期率</div><div class="stat-value ${parseFloat(c.overdueRate) > 50 ? 'danger' : ''}">${c.overdueRate}%</div></div>
+          <div class="stat-item"><div class="stat-label">套现率</div><div class="stat-value ${parseFloat(c.cashOutRate) > 20 ? 'danger' : ''}">${c.cashOutRate}%</div></div>
+          <div class="stat-item"><div class="stat-label">投诉率</div><div class="stat-value">${c.complaintRate}%</div></div>
+          <div class="stat-item"><div class="stat-label">房贷占比</div><div class="stat-value">${c.mortgageRate}%</div></div>
+          <div class="stat-item"><div class="stat-label">平均逾期天数</div><div class="stat-value">${c.avgOverdueDays}天</div></div>
+          <div class="stat-item"><div class="stat-label">平均还款金额</div><div class="stat-value">¥${Number(c.avgRepaymentAmount).toLocaleString()}</div></div>
         </div>
 
         <div class="persona-tags">
-          ${cluster.topRegions.map(r => `<span class="tag">📍 ${r.name}</span>`).join('')}
-          ${cluster.topPreferences.map(p => `<span class="tag">🏷️ ${p.name}</span>`).join('')}
-          ${cluster.topChannels.map(ch => `<span class="tag">📱 ${ch.name}</span>`).join('')}
+          ${c.topOrgs.map(r => `<span class="tag">🏦 ${r.name}</span>`).join('')}
+          ${c.topRegions.map(r => `<span class="tag">📍 ${r.name}</span>`).join('')}
+          ${c.topRepayment.map(r => `<span class="tag">📋 ${r.name}</span>`).join('')}
         </div>
 
         <div class="persona-strategy">
           <div class="strategy-title">💡 运营策略</div>
-          <ul>${cluster.strategy.map(s => `<li>${s}</li>`).join('')}</ul>
+          <ul>${c.strategy.map(s => `<li>${s}</li>`).join('')}</ul>
         </div>
       </div>
     `).join('');
   }
 
-  // 数据表
-  function renderResultTable(results) {
+  function renderResultTable() {
     const data = analyzer.processedData;
     if (data.length === 0) return;
 
-    const fields = ['id', 'name', 'age', 'gender', 'region', 'consumption', 'orderCount', 'avgOrderValue', 'clv', 'churnRisk', 'rfmSegment', 'loyaltyLevel', 'consumptionTrend', 'preference'];
+    const fields = ['id', 'gender', 'age', 'cardOrg', 'creditLimit', 'overdueDays', 'overdueAmount', 'repaymentRecord', 'lastRepaymentAmount', 'hasCashOut', 'hasComplaint', 'riskScore', 'riskLevel', 'repayAbilityScore', 'repayWillingScore'];
     const fieldNames = {
-      id: 'ID', name: '姓名', age: '年龄', gender: '性别', region: '地区',
-      consumption: '消费金额', orderCount: '订单数', avgOrderValue: '客单价',
-      clv: 'CLV', churnRisk: '流失风险', rfmSegment: 'RFM分群',
-      loyaltyLevel: '忠诚度', consumptionTrend: '消费趋势', preference: '偏好'
+      id: '客户编号', gender: '性别', age: '年龄', cardOrg: '办卡单位', creditLimit: '信用额度',
+      overdueDays: '逾期天数', overdueAmount: '逾期金额', repaymentRecord: '还款记录',
+      lastRepaymentAmount: '还款金额', hasCashOut: '套现', hasComplaint: '投诉',
+      riskScore: '风险分', riskLevel: '风险等级', repayAbilityScore: '还款能力', repayWillingScore: '还款意愿'
     };
 
     els.resultTable.querySelector('thead').innerHTML = `<tr>${fields.map(f => `<th>${fieldNames[f]}</th>`).join('')}</tr>`;
-
-    const rows = data.slice(0, 50);
-    els.resultTable.querySelector('tbody').innerHTML = rows.map(row => `
+    els.resultTable.querySelector('tbody').innerHTML = data.slice(0, 50).map(row => `
       <tr>
         <td>${row.id}</td>
-        <td>${row.name}</td>
-        <td>${row.age}</td>
         <td>${row.gender}</td>
-        <td>${row.region}</td>
-        <td>¥${row.consumption.toLocaleString()}</td>
-        <td>${row.orderCount}</td>
-        <td>¥${row.avgOrderValue.toLocaleString()}</td>
-        <td>¥${row.clv.toLocaleString()}</td>
-        <td><span class="${row.churnRisk > 60 ? 'badge danger' : row.churnRisk > 30 ? 'badge warning' : 'badge success'}">${row.churnRisk}%</span></td>
-        <td>${row.rfmSegment}</td>
-        <td>${row.loyaltyLevel}</td>
-        <td>${row.consumptionTrend}</td>
-        <td>${row.preference}</td>
+        <td>${row.age}</td>
+        <td>${row.cardOrg}</td>
+        <td>¥${row.creditLimit.toLocaleString()}</td>
+        <td><span class="${row.overdueDays > 60 ? 'badge danger' : row.overdueDays > 0 ? 'badge warning' : 'badge success'}">${row.overdueDays}天</span></td>
+        <td>¥${row.overdueAmount.toLocaleString()}</td>
+        <td><span class="${row.repaymentRecord === '严重逾期' ? 'badge danger' : row.repaymentRecord === '正常' ? 'badge success' : 'badge warning'}">${row.repaymentRecord}</span></td>
+        <td>¥${row.lastRepaymentAmount.toLocaleString()}</td>
+        <td><span class="${row.hasCashOut === '是' ? 'badge danger' : 'badge success'}">${row.hasCashOut}</span></td>
+        <td><span class="${row.hasComplaint === '是' ? 'badge warning' : 'badge success'}">${row.hasComplaint}</span></td>
+        <td><span class="${row.riskScore >= 70 ? 'badge danger' : row.riskScore >= 40 ? 'badge warning' : 'badge success'}">${row.riskScore}</span></td>
+        <td>${row.riskLevel}</td>
+        <td>${row.repayAbilityScore}</td>
+        <td>${row.repayWillingScore}</td>
       </tr>
-    `).join('');
-
-    if (data.length > 50) {
-      els.resultTable.querySelector('tbody').innerHTML +=
-        `<tr><td colspan="${fields.length}" style="text-align:center;color:#8b8fa3">... 还有 ${data.length - 50} 条记录</td></tr>`;
-    }
+    `).join('') + (data.length > 50 ? `<tr><td colspan="${fields.length}" style="text-align:center;color:#8b8fa3">... 还有 ${data.length - 50} 条</td></tr>` : '');
   }
 
   function clearData() {
     analyzer.rawData = []; analyzer.processedData = []; analyzer.clusters = []; analyzer.fieldMapping = {};
     els.dataPreview.style.display = 'none'; els.analysisPanel.style.display = 'none'; els.results.style.display = 'none';
-    els.fileInput.value = '';
-    chartRenderer.destroyAll();
+    els.fileInput.value = ''; chartRenderer.destroyAll();
   }
 
-  console.log('🚀 客户画像深度分析平台 v2 已就绪');
+  console.log('💳 信用卡客户画像分析平台已就绪');
 })();

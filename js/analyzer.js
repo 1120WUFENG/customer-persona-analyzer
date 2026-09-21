@@ -1,6 +1,6 @@
 /**
- * 客户画像分析引擎 v2
- * 支持 RFM 模型、CLV、流失预警、消费趋势、复购率等多维度分析
+ * 信用卡客户画像分析引擎
+ * 基于实际业务字段：办卡、征信、还款、消费、逾期、套现、投诉等
  */
 
 class CustomerAnalyzer {
@@ -50,31 +50,26 @@ class CustomerAnalyzer {
     const mapping = {};
 
     const rules = {
-      id: /^id|编号|用户id|customer.?id|user.?id/i,
-      name: /^name|姓名|名字|昵称|username/i,
-      age: /^age|年龄/i,
-      gender: /^gender|性别|sex/i,
-      region: /^region|地区|地域|城市|city|location|province|省份/i,
-      phone: /^phone|手机|电话|tel/i,
-      email: /^email|邮箱/i,
-      consumption: /^consumption|消费|金额|amount|spend|total.?spent|monetary|m/i,
-      frequency: /^frequency|频率|频次|活跃|active|visit|登录|次数/i,
-      registerDate: /^register|注册|signup|join|create.?time/i,
-      lastActive: /^last.?active|最后活跃|最近登录|recency|r/i,
-      preference: /^preference|偏好|标签|tag|category|品类|interest/i,
-      level: /^level|等级|vip|会员/i,
-      orderCount: /^order|订单数|purchase.?count|订单/i,
-      avgOrderValue: /^avg.?order|客单价|平均订单|aov/i,
-      returnRate: /^return|退货|退款/i,
-      channel: /^channel|渠道|来源|source|platform/i,
-      score: /^score|评分|满意度|rating|satisfaction/i,
-      loginCount: /^login|登录次数|session/i,
-      browseDuration: /^browse|浏览|duration|停留/i,
-      cartCount: /^cart|加购|购物车/i,
-      couponUsed: /^coupon|优惠券|折扣/i,
-      lastPurchaseDate: /^last.?purchase|最近购买|最后下单/i,
-      firstPurchaseDate: /^first.?purchase|首次购买|首单/i,
-      totalOrders: /^total.?orders?|累计订单|历史订单/i
+      id: /^id|编号|客户id|card.?id|用户id/i,
+      cardOpenDate: /^办卡时间|开卡日期|card.?open|发卡日期/i,
+      cardOrg: /^办卡单位|发卡行|card.?org|银行|机构/i,
+      creditBureau: /^征信|credit.?bureau|征信单位|查询机构/i,
+      householdAddr: /^户籍|户口|household|籍贯/i,
+      residenceAddr: /^居住|住址|residence|现住|地址/i,
+      creditLimit: /^信用额度|额度|credit.?limit|授信/i,
+      repaymentRecord: /^还款记录|还款情况|repayment.?record/i,
+      consumptionRecord: /^消费记录|消费情况|consumption/i,
+      complaint: /^投诉|进线|complaint|是否投诉/i,
+      overdueDays: /^逾期时间|逾期天数|overdue.?days|逾期/i,
+      lastRepaymentDate: /^最后还款|最近还款|last.?repayment/i,
+      lastRepaymentAmount: /^还款金额|最后还款金额|repayment.?amount/i,
+      hasMortgage: /^房贷|mortgage|是否有房贷|房屋贷款/i,
+      phoneRecord: /^电话|沟通记录|phone.?record|通话/i,
+      overdueAmount: /^逾期金额|信用卡逾期|overdue.?amount/i,
+      hasCashOut: /^套现|cash.?out|是否有套现|疑似套现/i,
+      cashOutMerchant: /^套现商家|套现商户|cash.?merchant/i,
+      gender: /^性别|gender|sex/i,
+      age: /^年龄|age/i
     };
 
     for (const field of fields) {
@@ -90,64 +85,102 @@ class CustomerAnalyzer {
     return mapping;
   }
 
-  loadSampleData() {
-    const regions = ['北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '南京', '重庆', '西安'];
-    const genders = ['男', '女'];
-    const preferences = ['数码', '服饰', '美妆', '食品', '运动', '家居', '图书', '母婴', '旅游', '汽车'];
-    const channels = ['APP', '小程序', 'PC网站', '线下门店', '第三方平台'];
-    const levels = ['普通', '银卡', '金卡', '钻石'];
+  // ========== 示例数据（信用卡场景）==========
 
+  loadSampleData() {
     const now = Date.now();
     const day = 86400000;
+    const month = day * 30;
 
-    this.rawData = Array.from({ length: 300 }, (_, i) => {
-      const age = Math.floor(Math.random() * 50) + 18;
+    const orgs = ['工商银行', '建设银行', '招商银行', '平安银行', '中信银行', '浦发银行', '交通银行', '民生银行'];
+    const genders = ['男', '女'];
+    const regions = ['北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '南京', '重庆', '西安', '天津', '苏州'];
+    const merchants = ['某商贸公司', '某科技公司', '某贸易商行', '某电子商行', '某批发部', '无'];
+    const repaymentStatuses = ['正常', '偶尔逾期', '经常逾期', '严重逾期'];
+    const consumptionLevels = ['高消费', '中消费', '低消费', '极少消费'];
+    const phoneStatuses = ['多次沟通未接', '已联系并承诺还款', '态度恶劣拒绝沟通', '已达成还款方案', '无法联系', '正常沟通'];
+
+    this.rawData = Array.from({ length: 500 }, (_, i) => {
+      const age = Math.floor(Math.random() * 40) + 22;
       const gender = genders[Math.floor(Math.random() * 2)];
       const region = regions[Math.floor(Math.random() * regions.length)];
-      const channel = channels[Math.floor(Math.random() * channels.length)];
-      const regDaysAgo = Math.floor(Math.random() * 1095) + 30; // 注册 30~1125 天前
-      const lastActiveDaysAgo = Math.floor(Math.random() * 120); // 最近活跃 0~120 天前
-      const totalOrders = Math.floor(Math.random() * 200) + 1;
-      const avgOrderValue = Math.floor(Math.random() * 2000) + 50;
-      const consumption = totalOrders * avgOrderValue;
-      const frequency = Math.floor(Math.random() * 30) + 1;
-      const returnRate = Math.random() * 0.3;
-      const score = Math.floor(Math.random() * 5) + 1;
-      const loginCount = Math.floor(Math.random() * 500) + 10;
-      const browseDuration = Math.floor(Math.random() * 300) + 5;
-      const cartCount = Math.floor(Math.random() * 50);
-      const couponUsed = Math.floor(Math.random() * 20);
-      const pref = preferences.slice(0, Math.floor(Math.random() * 3) + 1).join(',');
-      const level = consumption > 100000 ? '钻石' : consumption > 30000 ? '金卡' : consumption > 8000 ? '银卡' : '普通';
+      const org = orgs[Math.floor(Math.random() * orgs.length)];
+      const cardAgeMonths = Math.floor(Math.random() * 120) + 6;
 
-      const registerDate = new Date(now - regDaysAgo * day);
-      const lastActiveDate = new Date(now - lastActiveDaysAgo * day);
-      const firstPurchaseDate = new Date(registerDate.getTime() + Math.floor(Math.random() * 30) * day);
-      const lastPurchaseDate = new Date(Math.max(firstPurchaseDate.getTime(), lastActiveDate.getTime() - Math.floor(Math.random() * 30) * day));
+      // 信用额度：根据年龄和办卡时长
+      const baseLimit = 5000 + Math.floor(Math.random() * 95000);
+      const creditLimit = age > 35 && cardAgeMonths > 36 ? baseLimit * 1.5 : baseLimit;
+
+      // 风险因子（决定其他字段）
+      const riskSeed = Math.random();
+      const isHighRisk = riskSeed < 0.15;
+      const isMediumRisk = riskSeed < 0.35;
+
+      // 逾期
+      const overdueDays = isHighRisk ? Math.floor(Math.random() * 180) + 30 :
+                          isMediumRisk ? Math.floor(Math.random() * 60) : 0;
+      const overdueAmount = overdueDays > 0 ? Math.floor(creditLimit * (0.1 + Math.random() * 0.8)) : 0;
+
+      // 还款
+      const lastRepaymentDaysAgo = isHighRisk ? Math.floor(Math.random() * 90) + 10 :
+                                   isMediumRisk ? Math.floor(Math.random() * 30) + 1 :
+                                   Math.floor(Math.random() * 15);
+      const lastRepaymentAmount = isHighRisk ? Math.floor(creditLimit * Math.random() * 0.1) :
+                                  isMediumRisk ? Math.floor(creditLimit * (0.1 + Math.random() * 0.3)) :
+                                  Math.floor(creditLimit * (0.3 + Math.random() * 0.7));
+
+      // 套现
+      const hasCashOut = isHighRisk ? (Math.random() < 0.6) : (Math.random() < 0.05);
+      const cashOutMerchant = hasCashOut ? merchants[Math.floor(Math.random() * 4)] : '无';
+
+      // 投诉
+      const hasComplaint = isHighRisk ? (Math.random() < 0.4) : (Math.random() < 0.08);
+
+      // 还款记录
+      const repaymentRecord = isHighRisk ? '严重逾期' :
+                              isMediumRisk ? (Math.random() < 0.5 ? '偶尔逾期' : '经常逾期') : '正常';
+
+      // 消费记录
+      const consumptionRecord = isHighRisk ? (Math.random() < 0.7 ? '极少消费' : '低消费') :
+                                isMediumRisk ? '中消费' : (Math.random() < 0.3 ? '高消费' : '中消费');
+
+      // 电话沟通
+      const phoneRecord = isHighRisk ? phoneStatuses[Math.floor(Math.random() * 3)] :
+                          isMediumRisk ? phoneStatuses[1] : phoneStatuses[5];
+
+      // 房贷
+      const hasMortgage = age > 30 && Math.random() < 0.4;
+
+      // 征信单位
+      const creditBureau = isHighRisk ? '多次查询' : (Math.random() < 0.3 ? '偶尔查询' : '正常');
+
+      // 最后还款日期
+      const lastRepaymentDate = new Date(now - lastRepaymentDaysAgo * day);
+
+      // 办卡时间
+      const cardOpenDate = new Date(now - cardAgeMonths * month);
 
       return {
-        id: `U${String(i + 1).padStart(4, '0')}`,
-        姓名: `用户${i + 1}`,
-        年龄: age,
+        客户编号: `C${String(i + 1).padStart(5, '0')}`,
         性别: gender,
-        地区: region,
-        渠道: channel,
-        注册日期: registerDate.toISOString().slice(0, 10),
-        最近活跃: lastActiveDate.toISOString().slice(0, 10),
-        最近购买: lastPurchaseDate.toISOString().slice(0, 10),
-        首次购买: firstPurchaseDate.toISOString().slice(0, 10),
-        消费金额: consumption,
-        订单数: totalOrders,
-        客单价: avgOrderValue,
-        活跃天数: frequency,
-        退货率: returnRate.toFixed(2),
-        评分: score,
-        登录次数: loginCount,
-        浏览时长: browseDuration,
-        加购数: cartCount,
-        优惠券使用: couponUsed,
-        偏好: pref,
-        会员等级: level
+        年龄: age,
+        办卡时间: cardOpenDate.toISOString().slice(0, 10),
+        办卡单位: org,
+        征信单位: creditBureau,
+        户籍地址: region + '市',
+        居住地址: region + '市' + ['朝阳区', '浦东新区', '天河区', '南山区', '西湖区', '武侯区', '鼓楼区', '渝中区'][Math.floor(Math.random() * 8)],
+        信用额度: Math.round(creditLimit),
+        还款记录: repaymentRecord,
+        消费记录: consumptionRecord,
+        是否进线投诉: hasComplaint ? '是' : '否',
+        逾期天数: overdueDays,
+        最后还款时间: lastRepaymentDate.toISOString().slice(0, 10),
+        还款金额: lastRepaymentAmount,
+        是否有房贷: hasMortgage ? '是' : '否',
+        电话沟通记录: phoneRecord,
+        逾期金额: overdueAmount,
+        是否有套现: hasCashOut ? '是' : '否',
+        套现商家名称: cashOutMerchant
       };
     });
 
@@ -163,7 +196,6 @@ class CustomerAnalyzer {
     const results = {
       total: this.processedData.length,
       overview: this.calcOverview(),
-      rfm: this.calcRFM(),
       clusters: this.kMeansClustering(clusterCount),
       distributions: {},
       insights: this.generateInsights()
@@ -172,18 +204,20 @@ class CustomerAnalyzer {
     if (dimensions.includes('age')) results.distributions.age = this.calcDistribution('age', this.getAgeBuckets());
     if (dimensions.includes('gender')) results.distributions.gender = this.calcCategoryDistribution('gender');
     if (dimensions.includes('region')) results.distributions.region = this.calcCategoryDistribution('region');
-    if (dimensions.includes('consumption')) results.distributions.consumption = this.calcDistribution('consumption', this.getConsumptionBuckets());
-    if (dimensions.includes('frequency')) results.distributions.frequency = this.calcDistribution('frequency', this.getFrequencyBuckets());
-    if (dimensions.includes('preference')) results.distributions.preference = this.calcTagDistribution('preference');
-    if (dimensions.includes('channel')) results.distributions.channel = this.calcCategoryDistribution('channel');
-    if (dimensions.includes('rfm')) results.distributions.rfm = this.calcRFMDistribution();
-    if (dimensions.includes('clv')) results.distributions.clv = this.calcDistribution('clv', this.getCLVBuckets());
-    if (dimensions.includes('churn')) results.distributions.churn = this.calcDistribution('churnRisk', this.getChurnBuckets());
-    if (dimensions.includes('aov')) results.distributions.aov = this.calcDistribution('avgOrderValue', this.getAOVBuckets());
-    if (dimensions.includes('returnRate')) results.distributions.returnRate = this.calcDistribution('returnRate', this.getReturnRateBuckets());
-    if (dimensions.includes('score')) results.distributions.score = this.calcDistribution('score', this.getScoreBuckets());
-    if (dimensions.includes('loyalty')) results.distributions.loyalty = this.calcCategoryDistribution('loyaltyLevel');
-    if (dimensions.includes('trend')) results.distributions.trend = this.calcCategoryDistribution('consumptionTrend');
+    if (dimensions.includes('creditLimit')) results.distributions.creditLimit = this.calcDistribution('creditLimit', this.getCreditLimitBuckets());
+    if (dimensions.includes('overdue')) results.distributions.overdue = this.calcDistribution('overdueDays', this.getOverdueBuckets());
+    if (dimensions.includes('overdueAmount')) results.distributions.overdueAmount = this.calcDistribution('overdueAmount', this.getOverdueAmountBuckets());
+    if (dimensions.includes('repayment')) results.distributions.repayment = this.calcCategoryDistribution('repaymentRecord');
+    if (dimensions.includes('consumption')) results.distributions.consumption = this.calcCategoryDistribution('consumptionRecord');
+    if (dimensions.includes('complaint')) results.distributions.complaint = this.calcCategoryDistribution('hasComplaint');
+    if (dimensions.includes('cashOut')) results.distributions.cashOut = this.calcCategoryDistribution('hasCashOut');
+    if (dimensions.includes('mortgage')) results.distributions.mortgage = this.calcCategoryDistribution('hasMortgage');
+    if (dimensions.includes('cardOrg')) results.distributions.cardOrg = this.calcCategoryDistribution('cardOrg');
+    if (dimensions.includes('riskLevel')) results.distributions.riskLevel = this.calcCategoryDistribution('riskLevel');
+    if (dimensions.includes('repayAbility')) results.distributions.repayAbility = this.calcDistribution('repayAbilityScore', this.getScoreBuckets());
+    if (dimensions.includes('repayWilling')) results.distributions.repayWilling = this.calcDistribution('repayWillingScore', this.getScoreBuckets());
+    if (dimensions.includes('cardAge')) results.distributions.cardAge = this.calcDistribution('cardAgeMonths', this.getCardAgeBuckets());
+    if (dimensions.includes('phoneStatus')) results.distributions.phoneStatus = this.calcCategoryDistribution('phoneStatus');
 
     this.clusters = results.clusters;
     return results;
@@ -192,62 +226,55 @@ class CustomerAnalyzer {
   preprocessData() {
     return this.rawData.map(item => {
       const mapped = {};
-      mapped.id = this.getField(item, 'id') || Math.random().toString(36).substr(2, 9);
-      mapped.name = this.getField(item, 'name') || '';
-      mapped.age = this.parseNumber(this.getField(item, 'age'));
+      mapped.id = this.getField(item, 'id') || '';
       mapped.gender = this.normalizeGender(this.getField(item, 'gender'));
-      mapped.region = this.getField(item, 'region') || '未知';
-      mapped.channel = this.getField(item, 'channel') || '未知';
-      mapped.consumption = this.parseNumber(this.getField(item, 'consumption'));
-      mapped.frequency = this.parseNumber(this.getField(item, 'frequency'));
-      mapped.orderCount = this.parseNumber(this.getField(item, 'orderCount'));
-      mapped.avgOrderValue = this.parseNumber(this.getField(item, 'avgOrderValue'));
-      mapped.preference = this.getField(item, 'preference') || '';
-      mapped.level = this.getField(item, 'level') || '';
-      mapped.score = this.parseNumber(this.getField(item, 'score'));
-      mapped.loginCount = this.parseNumber(this.getField(item, 'loginCount'));
-      mapped.browseDuration = this.parseNumber(this.getField(item, 'browseDuration'));
-      mapped.cartCount = this.parseNumber(this.getField(item, 'cartCount'));
-      mapped.couponUsed = this.parseNumber(this.getField(item, 'couponUsed'));
-      mapped.returnRate = this.parseNumber(this.getField(item, 'returnRate'));
-      mapped.registerDate = this.parseDate(this.getField(item, 'registerDate'));
-      mapped.lastActive = this.parseDate(this.getField(item, 'lastActive'));
-      mapped.lastPurchaseDate = this.parseDate(this.getField(item, 'lastPurchaseDate'));
-      mapped.firstPurchaseDate = this.parseDate(this.getField(item, 'firstPurchaseDate'));
+      mapped.age = this.parseNumber(this.getField(item, 'age'));
+      mapped.cardOpenDate = this.parseDate(this.getField(item, 'cardOpenDate'));
+      mapped.cardOrg = this.getField(item, 'cardOrg') || '未知';
+      mapped.creditBureau = this.getField(item, 'creditBureau') || '正常';
+      mapped.householdAddr = this.getField(item, 'householdAddr') || '';
+      mapped.residenceAddr = this.getField(item, 'residenceAddr') || '';
+      mapped.creditLimit = this.parseNumber(this.getField(item, 'creditLimit'));
+      mapped.repaymentRecord = this.getField(item, 'repaymentRecord') || '正常';
+      mapped.consumptionRecord = this.getField(item, 'consumptionRecord') || '中消费';
+      mapped.hasComplaint = this.normalizeYesNo(this.getField(item, 'complaint'));
+      mapped.overdueDays = this.parseNumber(this.getField(item, 'overdueDays'));
+      mapped.lastRepaymentDate = this.parseDate(this.getField(item, 'lastRepaymentDate'));
+      mapped.lastRepaymentAmount = this.parseNumber(this.getField(item, 'lastRepaymentAmount'));
+      mapped.hasMortgage = this.normalizeYesNo(this.getField(item, 'hasMortgage'));
+      mapped.phoneRecord = this.getField(item, 'phoneRecord') || '正常沟通';
+      mapped.overdueAmount = this.parseNumber(this.getField(item, 'overdueAmount'));
+      mapped.hasCashOut = this.normalizeYesNo(this.getField(item, 'hasCashOut'));
+      mapped.cashOutMerchant = this.getField(item, 'cashOutMerchant') || '无';
 
-      // 派生指标
-      mapped.daysSinceRegister = this.daysBetween(mapped.registerDate, new Date());
-      mapped.daysSinceLastActive = this.daysBetween(mapped.lastActive, new Date());
-      mapped.daysSinceLastPurchase = this.daysBetween(mapped.lastPurchaseDate, new Date());
-      mapped.customerAgeMonths = Math.max(1, Math.round(mapped.daysSinceRegister / 30));
-      mapped.monthlyOrderRate = mapped.orderCount / mapped.customerAgeMonths;
-      mapped.monthlyConsumption = mapped.consumption / mapped.customerAgeMonths;
-      mapped.repurchaseRate = mapped.orderCount > 1 ? ((mapped.orderCount - 1) / mapped.orderCount * 100).toFixed(1) : 0;
-      mapped.browseToOrderRatio = mapped.loginCount > 0 ? (mapped.orderCount / mapped.loginCount * 100).toFixed(1) : 0;
-      mapped.cartConversionRate = mapped.cartCount > 0 ? (mapped.orderCount / mapped.cartCount * 100).toFixed(1) : 0;
+      // 派生字段
+      mapped.cardAgeMonths = this.monthsBetween(mapped.cardOpenDate, new Date());
+      mapped.daysSinceLastRepayment = this.daysBetween(mapped.lastRepaymentDate, new Date());
+      mapped.region = this.extractRegion(mapped.residenceAddr || mapped.householdAddr);
+      mapped.overdueRatio = mapped.creditLimit > 0 ? (mapped.overdueAmount / mapped.creditLimit * 100) : 0;
+      mapped.repayAmountRatio = mapped.creditLimit > 0 ? (mapped.lastRepaymentAmount / mapped.creditLimit * 100) : 0;
 
-      // RFM 评分
-      mapped.rfmRecency = this.scoreRecency(mapped.daysSinceLastPurchase);
-      mapped.rfmFrequency = this.scoreFrequency(mapped.orderCount);
-      mapped.rfmMonetary = this.scoreMonetary(mapped.consumption);
-      mapped.rfmScore = mapped.rfmRecency + mapped.rfmFrequency + mapped.rfmMonetary;
-      mapped.rfmSegment = this.getRFMSegment(mapped.rfmRecency, mapped.rfmFrequency, mapped.rfmMonetary);
+      // 风险评分
+      mapped.riskScore = this.calcRiskScore(mapped);
+      mapped.riskLevel = this.getRiskLevel(mapped.riskScore);
 
-      // 客户生命周期价值 (CLV)
-      mapped.clv = this.calcCLV(mapped);
+      // 还款能力评分
+      mapped.repayAbilityScore = this.calcRepayAbility(mapped);
 
-      // 流失风险
-      mapped.churnRisk = this.calcChurnRisk(mapped);
+      // 还款意愿评分
+      mapped.repayWillingScore = this.calcRepayWilling(mapped);
 
-      // 消费趋势
-      mapped.consumptionTrend = this.calcConsumptionTrend(mapped);
+      // 综合评分
+      mapped综合评分 = Math.round((100 - mapped.riskScore) * 0.4 + mapped.repayAbilityScore * 0.3 + mapped.repayWillingScore * 0.3);
 
-      // 忠诚度等级
-      mapped.loyaltyLevel = this.calcLoyaltyLevel(mapped);
+      // 电话状态分类
+      mapped.phoneStatus = this.classifyPhoneStatus(mapped.phoneRecord);
 
       return mapped;
-    }).filter(item => item.age > 0 || item.consumption > 0);
+    }).filter(item => item.age > 0 || item.creditLimit > 0);
   }
+
+  // ========== 工具方法 ==========
 
   getField(item, key) {
     const fieldName = this.fieldMapping[key];
@@ -272,6 +299,11 @@ class CustomerAnalyzer {
     return Math.floor((d2 - d1) / 86400000);
   }
 
+  monthsBetween(d1, d2) {
+    if (!d1 || !d2) return 0;
+    return Math.max(1, Math.floor((d2 - d1) / (86400000 * 30)));
+  }
+
   normalizeGender(val) {
     if (!val) return '未知';
     const str = String(val).toLowerCase();
@@ -280,172 +312,181 @@ class CustomerAnalyzer {
     return '未知';
   }
 
-  // ========== RFM 评分 ==========
-
-  scoreRecency(days) {
-    if (days <= 7) return 5;
-    if (days <= 14) return 4;
-    if (days <= 30) return 3;
-    if (days <= 60) return 2;
-    return 1;
+  normalizeYesNo(val) {
+    if (!val) return '否';
+    const str = String(val).trim();
+    if (/^(是|yes|1|true|有)$/i.test(str)) return '是';
+    return '否';
   }
 
-  scoreFrequency(orders) {
-    if (orders >= 50) return 5;
-    if (orders >= 20) return 4;
-    if (orders >= 10) return 3;
-    if (orders >= 3) return 2;
-    return 1;
-  }
-
-  scoreMonetary(consumption) {
-    if (consumption >= 100000) return 5;
-    if (consumption >= 30000) return 4;
-    if (consumption >= 10000) return 3;
-    if (consumption >= 3000) return 2;
-    return 1;
-  }
-
-  getRFMSegment(r, f, m) {
-    const total = r + f + m;
-    if (r >= 4 && f >= 4 && m >= 4) return '🏆 重要价值客户';
-    if (r >= 4 && f >= 4 && m < 4) return '🔄 重要保持客户';
-    if (r >= 4 && f < 4 && m >= 4) return '💎 重要发展客户';
-    if (r >= 4 && f < 4 && m < 4) return '🌱 新客户';
-    if (r < 4 && f >= 4 && m >= 4) return '⚠️ 重要挽留客户';
-    if (r < 4 && f >= 4 && m < 4) return '😴 一般维持客户';
-    if (r < 4 && f < 4 && m >= 4) return '🔔 重要唤回客户';
-    return '❄️ 流失客户';
-  }
-
-  // ========== CLV 计算 ==========
-
-  calcCLV(customer) {
-    if (customer.orderCount <= 0) return 0;
-    const avgMonthlySpend = customer.consumption / Math.max(1, customer.customerAgeMonths);
-    const retentionRate = Math.min(0.95, 1 - (customer.daysSinceLastActive / 365));
-    const lifespanMonths = Math.max(12, customer.customerAgeMonths * 2); // 预估剩余寿命
-    const discountRate = 0.1 / 12; // 月折现率
-
-    let clv = 0;
-    for (let m = 1; m <= lifespanMonths; m++) {
-      clv += (avgMonthlySpend * Math.pow(retentionRate, m)) / Math.pow(1 + discountRate, m);
+  extractRegion(addr) {
+    if (!addr) return '未知';
+    const cities = ['北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '南京', '重庆', '西安', '天津', '苏州'];
+    for (const city of cities) {
+      if (addr.includes(city)) return city;
     }
-    return Math.round(clv);
+    return addr.slice(0, 2) + '市';
   }
 
-  // ========== 流失风险 ==========
-
-  calcChurnRisk(customer) {
-    let risk = 0;
-
-    // 最近活跃时间权重 40%
-    if (customer.daysSinceLastActive > 90) risk += 40;
-    else if (customer.daysSinceLastActive > 60) risk += 30;
-    else if (customer.daysSinceLastActive > 30) risk += 20;
-    else if (customer.daysSinceLastActive > 14) risk += 10;
-
-    // 购买频率下降权重 25%
-    if (customer.monthlyOrderRate < 0.5) risk += 25;
-    else if (customer.monthlyOrderRate < 1) risk += 15;
-    else if (customer.monthlyOrderRate < 2) risk += 5;
-
-    // 退货率权重 15%
-    if (customer.returnRate > 0.2) risk += 15;
-    else if (customer.returnRate > 0.1) risk += 10;
-    else if (customer.returnRate > 0.05) risk += 5;
-
-    // 评分低权重 10%
-    if (customer.score <= 2) risk += 10;
-    else if (customer.score <= 3) risk += 5;
-
-    // 加购未购买权重 10%
-    if (customer.cartCount > 5 && customer.cartConversionRate < 20) risk += 10;
-    else if (customer.cartCount > 3 && customer.cartConversionRate < 30) risk += 5;
-
-    return Math.min(100, risk);
+  classifyPhoneStatus(record) {
+    if (!record) return '正常沟通';
+    if (record.includes('未接') || record.includes('无法联系')) return '❌ 无法联系';
+    if (record.includes('拒绝') || record.includes('态度恶劣')) return '😡 拒绝沟通';
+    if (record.includes('承诺')) return '🤝 已承诺还款';
+    if (record.includes('方案')) return '📋 已达成方案';
+    return '✅ 正常沟通';
   }
 
-  // ========== 消费趋势 ==========
+  // ========== 风险评分 ==========
 
-  calcConsumptionTrend(customer) {
-    if (customer.customerAgeMonths < 3) return '🆕 新客户';
-    const recentMonths = Math.min(3, customer.customerAgeMonths);
-    const olderMonths = customer.customerAgeMonths - recentMonths;
+  calcRiskScore(d) {
+    let score = 0;
 
-    if (olderMonths <= 0) return '🆕 新客户';
+    // 逾期天数 (30分)
+    if (d.overdueDays > 90) score += 30;
+    else if (d.overdueDays > 60) score += 25;
+    else if (d.overdueDays > 30) score += 18;
+    else if (d.overdueDays > 0) score += 10;
 
-    const recentRate = customer.monthlyConsumption;
-    const estimatedOldRate = (customer.consumption - recentRate * recentMonths) / olderMonths;
+    // 逾期金额占比 (20分)
+    if (d.overdueRatio > 80) score += 20;
+    else if (d.overdueRatio > 50) score += 15;
+    else if (d.overdueRatio > 20) score += 10;
+    else if (d.overdueRatio > 0) score += 5;
 
-    if (recentRate > estimatedOldRate * 1.3) return '📈 上升';
-    if (recentRate < estimatedOldRate * 0.7) return '📉 下降';
-    return '➡️ 稳定';
+    // 套现记录 (20分)
+    if (d.hasCashOut === '是') score += 20;
+
+    // 投诉记录 (10分)
+    if (d.hasComplaint === '是') score += 10;
+
+    // 还款记录 (10分)
+    if (d.repaymentRecord === '严重逾期') score += 10;
+    else if (d.repaymentRecord === '经常逾期') score += 7;
+    else if (d.repaymentRecord === '偶尔逾期') score += 3;
+
+    // 电话沟通 (10分)
+    if (d.phoneStatus.includes('无法联系')) score += 10;
+    else if (d.phoneStatus.includes('拒绝沟通')) score += 8;
+    else if (d.phoneStatus.includes('已承诺')) score += 3;
+
+    return Math.min(100, score);
   }
 
-  // ========== 忠诚度 ==========
-
-  calcLoyaltyLevel(customer) {
-    const score = (customer.orderCount > 10 ? 25 : customer.orderCount > 5 ? 15 : 5) +
-                  (customer.customerAgeMonths > 24 ? 25 : customer.customerAgeMonths > 12 ? 15 : 5) +
-                  (customer.daysSinceLastActive < 14 ? 25 : customer.daysSinceLastActive < 30 ? 15 : 5) +
-                  (customer.score >= 4 ? 25 : customer.score >= 3 ? 15 : 5);
-
-    if (score >= 85) return '🥇 高忠诚度';
-    if (score >= 65) return '🥈 中高忠诚度';
-    if (score >= 45) return '🥉 中忠诚度';
-    return '⚪ 低忠诚度';
+  getRiskLevel(score) {
+    if (score >= 70) return '🔴 高风险';
+    if (score >= 40) return '🟡 中风险';
+    if (score >= 20) return '🟠 低风险';
+    return '🟢 正常';
   }
 
-  // ========== 概览统计 ==========
+  // ========== 还款能力 ==========
+
+  calcRepayAbility(d) {
+    let score = 0;
+
+    // 信用额度 (高额度说明银行认可)
+    if (d.creditLimit >= 80000) score += 25;
+    else if (d.creditLimit >= 50000) score += 20;
+    else if (d.creditLimit >= 20000) score += 15;
+    else score += 8;
+
+    // 有房贷说明有资产
+    if (d.hasMortgage === '是') score += 15;
+
+    // 还款金额占比
+    if (d.repayAmountRatio >= 50) score += 25;
+    else if (d.repayAmountRatio >= 20) score += 18;
+    else if (d.repayAmountRatio >= 10) score += 10;
+    else score += 3;
+
+    // 消费能力
+    if (d.consumptionRecord === '高消费') score += 20;
+    else if (d.consumptionRecord === '中消费') score += 15;
+    else if (d.consumptionRecord === '低消费') score += 8;
+    else score += 3;
+
+    // 年龄（中年更有还款能力）
+    if (d.age >= 30 && d.age <= 50) score += 15;
+    else if (d.age >= 25) score += 10;
+    else score += 5;
+
+    return Math.min(100, score);
+  }
+
+  // ========== 还款意愿 ==========
+
+  calcRepayWilling(d) {
+    let score = 0;
+
+    // 还款记录 (30分)
+    if (d.repaymentRecord === '正常') score += 30;
+    else if (d.repaymentRecord === '偶尔逾期') score += 18;
+    else if (d.repaymentRecord === '经常逾期') score += 8;
+    else score += 0;
+
+    // 最近还款时间 (20分)
+    if (d.daysSinceLastRepayment <= 7) score += 20;
+    else if (d.daysSinceLastRepayment <= 15) score += 15;
+    else if (d.daysSinceLastRepayment <= 30) score += 10;
+    else score += 3;
+
+    // 电话沟通态度 (20分)
+    if (d.phoneStatus.includes('正常沟通')) score += 20;
+    else if (d.phoneStatus.includes('已达成方案')) score += 18;
+    else if (d.phoneStatus.includes('已承诺')) score += 12;
+    else if (d.phoneStatus.includes('拒绝沟通')) score += 3;
+    else score += 0;
+
+    // 是否有投诉 (15分)
+    if (d.hasComplaint === '否') score += 15;
+    else score += 3;
+
+    // 套现行为 (15分)
+    if (d.hasCashOut === '否') score += 15;
+    else score += 0;
+
+    return Math.min(100, score);
+  }
+
+  // ========== 概览 ==========
 
   calcOverview() {
     const d = this.processedData;
-    const ages = d.filter(x => x.age > 0).map(x => x.age);
-    const consumptions = d.filter(x => x.consumption > 0).map(x => x.consumption);
-    const frequencies = d.filter(x => x.frequency > 0).map(x => x.frequency);
-    const clvs = d.map(x => x.clv);
-    const churns = d.map(x => x.churnRisk);
-    const aovs = d.filter(x => x.avgOrderValue > 0).map(x => x.avgOrderValue);
-    const returnRates = d.filter(x => x.returnRate > 0).map(x => x.returnRate);
-
-    const avg = arr => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+    const avg = (arr, fn) => arr.length ? (arr.reduce((s, x) => s + fn(x), 0) / arr.length) : 0;
 
     return {
-      totalCustomers: d.length,
-      avgAge: avg(ages).toFixed(1),
-      avgConsumption: avg(consumptions).toFixed(0),
-      avgFrequency: avg(frequencies).toFixed(1),
-      maxConsumption: consumptions.length ? Math.max(...consumptions) : 0,
-      avgCLV: avg(clvs).toFixed(0),
-      avgChurnRisk: avg(churns).toFixed(1),
-      avgAOV: avg(aovs).toFixed(0),
-      avgReturnRate: (avg(returnRates) * 100).toFixed(1),
-      avgRepurchaseRate: avg(d.map(x => parseFloat(x.repurchaseRate))).toFixed(1),
-      genderRatio: this.calcGenderRatio(d),
-      highValueCount: d.filter(x => x.clv > 50000).length,
-      atRiskCount: d.filter(x => x.churnRisk > 60).length,
-      newCustomerCount: d.filter(x => x.daysSinceRegister < 90).length,
-      loyalCount: d.filter(x => x.loyaltyLevel.includes('高忠诚')).length
+      total: d.length,
+      avgAge: avg(d, x => x.age).toFixed(1),
+      avgCreditLimit: avg(d, x => x.creditLimit).toFixed(0),
+      avgOverdueDays: avg(d, x => x.overdueDays).toFixed(1),
+      avgOverdueAmount: avg(d, x => x.overdueAmount).toFixed(0),
+      avgRiskScore: avg(d, x => x.riskScore).toFixed(1),
+      avgRepayAbility: avg(d, x => x.repayAbilityScore).toFixed(1),
+      avgRepayWilling: avg(d, x => x.repayWillingScore).toFixed(1),
+      overdueCount: d.filter(x => x.overdueDays > 0).length,
+      overdueRate: (d.filter(x => x.overdueDays > 0).length / d.length * 100).toFixed(1),
+      cashOutCount: d.filter(x => x.hasCashOut === '是').length,
+      cashOutRate: (d.filter(x => x.hasCashOut === '是').length / d.length * 100).toFixed(1),
+      complaintCount: d.filter(x => x.hasComplaint === '是').length,
+      complaintRate: (d.filter(x => x.hasComplaint === '是').length / d.length * 100).toFixed(1),
+      highRiskCount: d.filter(x => x.riskScore >= 70).length,
+      mortgageCount: d.filter(x => x.hasMortgage === '是').length,
+      genderRatio: { male: d.filter(x => x.gender === '男').length, female: d.filter(x => x.gender === '女').length },
+      severeOverdue: d.filter(x => x.overdueDays > 90).length
     };
   }
 
-  calcGenderRatio(data) {
-    const male = data.filter(d => d.gender === '男').length;
-    const female = data.filter(d => d.gender === '女').length;
-    return { male, female, unknown: data.length - male - female };
-  }
-
-  // ========== K-Means 聚类 ==========
+  // ========== 聚类 ==========
 
   kMeansClustering(k) {
-    const data = this.processedData.filter(d => d.consumption > 0);
+    const data = this.processedData;
     if (data.length < k) return [];
 
-    // 使用更多特征进行聚类
     const features = data.map(d => [
-      d.age, d.consumption, d.frequency, d.orderCount,
-      d.avgOrderValue, d.clv, d.churnRisk, d.daysSinceLastActive
+      d.age, d.creditLimit, d.overdueDays, d.overdueAmount,
+      d.riskScore, d.repayAbilityScore, d.repayWillingScore,
+      d.lastRepaymentAmount, d.cardAgeMonths
     ]);
     const normalized = this.normalizeFeatures(features);
 
@@ -479,9 +520,7 @@ class CustomerAnalyzer {
         maxs[i] = Math.max(maxs[i], row[i]);
       }
     }
-    return features.map(row =>
-      row.map((val, i) => maxs[i] === mins[i] ? 0 : (val - mins[i]) / (maxs[i] - mins[i]))
-    );
+    return features.map(row => row.map((val, i) => maxs[i] === mins[i] ? 0 : (val - mins[i]) / (maxs[i] - mins[i])));
   }
 
   initCentroids(data, k) {
@@ -508,145 +547,186 @@ class CustomerAnalyzer {
     const clusters = Array.from({ length: k }, () => ({ members: [] }));
     for (let i = 0; i < data.length; i++) clusters[assignments[i]].members.push(data[i]);
 
-    const personaNames = ['高价值忠诚客', '潜力成长客', '价格敏感客', '新锐尝鲜客', '沉睡流失客', '高消费低频客', '活跃低价客', 'VIP大客户'];
-    const personaEmojis = ['👑', '🚀', '💰', '✨', '😴', '💎', '🔥', '🏆'];
-    const personaColors = ['#6c5ce7', '#00b894', '#fdcb6e', '#e17055', '#636e72', '#74b9ff', '#fd79a8', '#a29bfe'];
+    const personaConfig = [
+      { name: '优质客户', emoji: '👑', color: '#00b894' },
+      { name: '成长型客户', emoji: '🚀', color: '#6c5ce7' },
+      { name: '风险预警客户', emoji: '⚠️', color: '#fdcb6e' },
+      { name: '高危客户', emoji: '🚨', color: '#e17055' },
+      { name: '套现嫌疑客户', emoji: '🔍', color: '#fd79a8' },
+      { name: '沉睡客户', emoji: '😴', color: '#636e72' },
+      { name: '新客户', emoji: '🌱', color: '#74b9ff' },
+      { name: '特殊关注客户', emoji: '👁️', color: '#a29bfe' }
+    ];
 
     for (let i = 0; i < clusters.length; i++) {
       const c = clusters[i];
       if (c.members.length === 0) continue;
 
-      const avg = (arr, fn) => arr.length ? (arr.reduce((s, m) => s + fn(m), 0) / arr.length) : 0;
+      const cfg = personaConfig[i] || { name: `群体${i + 1}`, emoji: '👤', color: '#74b9ff' };
+      const avg = (fn) => c.members.length ? (c.members.reduce((s, m) => s + fn(m), 0) / c.members.length) : 0;
 
-      c.avgAge = avg(c.members, m => m.age).toFixed(1);
-      c.avgConsumption = avg(c.members, m => m.consumption).toFixed(0);
-      c.avgFrequency = avg(c.members, m => m.frequency).toFixed(1);
-      c.avgOrderCount = avg(c.members, m => m.orderCount).toFixed(0);
-      c.avgAOV = avg(c.members, m => m.avgOrderValue).toFixed(0);
-      c.avgCLV = avg(c.members, m => m.clv).toFixed(0);
-      c.avgChurnRisk = avg(c.members, m => m.churnRisk).toFixed(1);
-      c.avgDaysSinceActive = avg(c.members, m => m.daysSinceLastActive).toFixed(0);
-      c.avgReturnRate = (avg(c.members, m => m.returnRate) * 100).toFixed(1);
-      c.avgRepurchaseRate = avg(c.members, m => parseFloat(m.repurchaseRate)).toFixed(1);
-      c.genderRatio = this.calcGenderRatio(c.members);
-      c.topRegions = this.getTopItems(c.members, 'region', 3);
-      c.topPreferences = this.getTopItems(c.members, 'preference', 3);
-      c.topChannels = this.getTopItems(c.members, 'channel', 3);
-      c.topRFMSegments = this.getTopItems(c.members, 'rfmSegment', 3);
-      c.topLoyalty = this.getTopItems(c.members, 'loyaltyLevel', 2);
-      c.topTrends = this.getTopItems(c.members, 'consumptionTrend', 3);
-      c.label = personaNames[i] || `群体 ${i + 1}`;
-      c.emoji = personaEmojis[i] || '👤';
-      c.color = personaColors[i] || '#6c5ce7';
+      c.label = cfg.name;
+      c.emoji = cfg.emoji;
+      c.color = cfg.color;
       c.percentage = ((c.members.length / data.length) * 100).toFixed(1);
-      c.description = this.generatePersonaDescription(c);
+
+      c.avgAge = avg(m => m.age).toFixed(1);
+      c.avgCreditLimit = avg(m => m.creditLimit).toFixed(0);
+      c.avgOverdueDays = avg(m => m.overdueDays).toFixed(1);
+      c.avgOverdueAmount = avg(m => m.overdueAmount).toFixed(0);
+      c.avgRiskScore = avg(m => m.riskScore).toFixed(1);
+      c.avgRepayAbility = avg(m => m.repayAbilityScore).toFixed(1);
+      c.avgRepayWilling = avg(m => m.repayWillingScore).toFixed(1);
+      c.avgRepaymentAmount = avg(m => m.lastRepaymentAmount).toFixed(0);
+      c.avgCardAge = avg(m => m.cardAgeMonths).toFixed(0);
+      c.genderRatio = { male: c.members.filter(m => m.gender === '男').length, female: c.members.filter(m => m.gender === '女').length };
+      c.overdueRate = (c.members.filter(m => m.overdueDays > 0).length / c.members.length * 100).toFixed(1);
+      c.cashOutRate = (c.members.filter(m => m.hasCashOut === '是').length / c.members.length * 100).toFixed(1);
+      c.complaintRate = (c.members.filter(m => m.hasComplaint === '是').length / c.members.length * 100).toFixed(1);
+      c.mortgageRate = (c.members.filter(m => m.hasMortgage === '是').length / c.members.length * 100).toFixed(1);
+      c.topOrgs = this.getTopItems(c.members, 'cardOrg', 3);
+      c.topRegions = this.getTopItems(c.members, 'region', 3);
+      c.topRepayment = this.getTopItems(c.members, 'repaymentRecord', 3);
+      c.topConsumption = this.getTopItems(c.members, 'consumptionRecord', 3);
+      c.topPhoneStatus = this.getTopItems(c.members, 'phoneStatus', 3);
+
+      c.description = this.generateDescription(c);
       c.strategy = this.generateStrategy(c);
+      c.urgentActions = this.generateUrgentActions(c);
     }
 
     return clusters.filter(c => c.members.length > 0);
   }
 
-  generatePersonaDescription(c) {
-    const age = parseFloat(c.avgAge);
-    const consumption = parseFloat(c.avgConsumption);
-    const clv = parseFloat(c.avgCLV);
-    const churn = parseFloat(c.avgChurnRisk);
-    const orders = parseFloat(c.avgOrderCount);
-
+  generateDescription(c) {
+    const risk = parseFloat(c.avgRiskScore);
+    const ability = parseFloat(c.avgRepayAbility);
+    const willing = parseFloat(c.avgRepayWilling);
     let desc = '';
-    if (age < 25) desc += 'Z世代年轻群体，';
-    else if (age < 35) desc += '青年消费主力，';
-    else if (age < 45) desc += '中年成熟客群，';
-    else desc += '银发经济群体，';
 
-    if (clv > 50000) desc += '高生命周期价值';
-    else if (clv > 20000) desc += '中高价值';
-    else if (clv > 5000) desc += '中等价值';
-    else desc += '基础价值';
+    if (risk >= 70) desc += '高风险客群，';
+    else if (risk >= 40) desc += '中等风险客群，';
+    else desc += '低风险客群，';
 
-    if (churn > 60) desc += '，流失高风险';
-    else if (churn > 30) desc += '，流失中风险';
-    else desc += '，低流失风险';
+    if (ability >= 70) desc += '还款能力强';
+    else if (ability >= 40) desc += '还款能力中等';
+    else desc += '还款能力较弱';
+
+    if (willing >= 70) desc += '，还款意愿积极';
+    else if (willing >= 40) desc += '，还款意愿一般';
+    else desc += '，还款意愿消极';
 
     return desc;
   }
 
   generateStrategy(c) {
-    const churn = parseFloat(c.avgChurnRisk);
-    const clv = parseFloat(c.avgCLV);
-    const orders = parseFloat(c.avgOrderCount);
+    const risk = parseFloat(c.avgRiskScore);
+    const willing = parseFloat(c.avgRepayWilling);
     const strategies = [];
 
-    if (churn > 60) strategies.push('紧急召回：发放专属优惠券');
-    if (churn > 40) strategies.push('定期关怀：生日/节日触达');
-    if (clv > 50000) strategies.push('VIP服务：专属客服+优先权益');
-    if (clv > 20000) strategies.push('升级引导：推送高价值商品');
-    if (orders < 3) strategies.push('新人激励：首单优惠+引导复购');
-    if (parseFloat(c.avgReturnRate) > 15) strategies.push('品质优化：改善退货体验');
-    if (strategies.length === 0) strategies.push('持续维护：保持互动频率');
+    if (risk >= 70) {
+      strategies.push('加强催收力度，缩短跟进周期');
+      strategies.push('限制额度使用，防止进一步损失');
+      if (parseFloat(c.cashOutRate) > 30) strategies.push('排查套现行为，必要时冻结账户');
+    } else if (risk >= 40) {
+      strategies.push('定期电话跟进，了解还款计划');
+      strategies.push('提供分期还款方案，降低还款压力');
+    } else {
+      strategies.push('维护良好关系，提升客户满意度');
+      strategies.push('推荐额度提升或增值产品');
+    }
+
+    if (willing < 40) strategies.push('重点关注还款意愿，必要时法律介入');
+    if (parseFloat(c.complaintRate) > 20) strategies.push('优先处理投诉，改善服务体验');
 
     return strategies;
+  }
+
+  generateUrgentActions(c) {
+    const actions = [];
+    const severeOverdue = c.members.filter(m => m.overdueDays > 90).length;
+    const cashOut = c.members.filter(m => m.hasCashOut === '是').length;
+    const unreachable = c.members.filter(m => m.phoneStatus.includes('无法联系')).length;
+
+    if (severeOverdue > 0) actions.push(`🔴 ${severeOverdue}人逾期超90天，需立即催收`);
+    if (cashOut > 0) actions.push(`🟡 ${cashOut}人疑似套现，需风控排查`);
+    if (unreachable > 0) actions.push(`🟠 ${unreachable}人无法联系，需多渠道触达`);
+
+    return actions;
   }
 
   getTopItems(data, field, n) {
     const counts = {};
     data.forEach(d => {
       const val = d[field];
-      if (val && val !== '未知') counts[val] = (counts[val] || 0) + 1;
+      if (val && val !== '未知' && val !== '无') counts[val] = (counts[val] || 0) + 1;
     });
-    return Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, n)
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, n)
       .map(([name, count]) => ({ name, count, pct: ((count / data.length) * 100).toFixed(1) }));
   }
 
-  // ========== 洞察生成 ==========
+  // ========== 智能洞察 ==========
 
   generateInsights() {
     const d = this.processedData;
     const insights = [];
 
-    // 高流失风险预警
-    const highChurn = d.filter(x => x.churnRisk > 60).length;
-    if (highChurn > 0) {
+    const severeOverdue = d.filter(x => x.overdueDays > 90);
+    if (severeOverdue.length > 0) {
+      const totalAmount = severeOverdue.reduce((s, x) => s + x.overdueAmount, 0);
       insights.push({
-        type: 'danger',
-        icon: '🚨',
-        title: '流失预警',
-        text: `${highChurn} 位客户（${(highChurn / d.length * 100).toFixed(1)}%）处于高流失风险，建议立即启动召回计划`
+        type: 'danger', icon: '🚨',
+        title: '严重逾期预警',
+        text: `${severeOverdue.length} 人逾期超90天，逾期总额 ¥${totalAmount.toLocaleString()}，建议立即启动催收`
       });
     }
 
-    // 高价值客户
-    const highValue = d.filter(x => x.clv > 50000).length;
-    if (highValue > 0) {
+    const cashOut = d.filter(x => x.hasCashOut === '是');
+    if (cashOut.length > 0) {
+      const merchants = {};
+      cashOut.forEach(x => { if (x.cashOutMerchant !== '无') merchants[x.cashOutMerchant] = (merchants[x.cashOutMerchant] || 0) + 1; });
+      const topMerchant = Object.entries(merchants).sort((a, b) => b[1] - a[1])[0];
       insights.push({
-        type: 'success',
-        icon: '👑',
-        title: '高价值客户',
-        text: `${highValue} 位客户生命周期价值超过 ¥50,000，建议提供 VIP 专属服务`
+        type: 'warning', icon: '🔍',
+        title: '套现风险',
+        text: `${cashOut.length} 人疑似套现（${(cashOut.length / d.length * 100).toFixed(1)}%）${topMerchant ? '，高频商户：' + topMerchant[0] : ''}`
       });
     }
 
-    // 复购率分析
-    const avgRepurchase = d.reduce((s, x) => s + parseFloat(x.repurchaseRate), 0) / d.length;
-    insights.push({
-      type: avgRepurchase > 70 ? 'success' : 'warning',
-      icon: '🔄',
-      title: '复购率',
-      text: `平均复购率 ${avgRepurchase.toFixed(1)}%，${avgRepurchase > 70 ? '表现优秀' : '仍有提升空间'}`
-    });
-
-    // 渠道分析
-    const channelCounts = {};
-    d.forEach(x => channelCounts[x.channel] = (channelCounts[x.channel] || 0) + 1);
-    const topChannel = Object.entries(channelCounts).sort((a, b) => b[1] - a[1])[0];
-    if (topChannel) {
+    const complaints = d.filter(x => x.hasComplaint === '是');
+    if (complaints.length > 0) {
       insights.push({
-        type: 'info',
-        icon: '📱',
-        title: '渠道洞察',
-        text: `${topChannel[0]} 是主要获客渠道（${(topChannel[1] / d.length * 100).toFixed(1)}%），建议加大投入`
+        type: 'warning', icon: '📢',
+        title: '投诉客户',
+        text: `${complaints.length} 人有投诉记录（${(complaints.length / d.length * 100).toFixed(1)}%），需关注服务质量`
+      });
+    }
+
+    const unreachable = d.filter(x => x.phoneStatus.includes('无法联系'));
+    if (unreachable.length > 0) {
+      insights.push({
+        type: 'danger', icon: '📵',
+        title: '失联客户',
+        text: `${unreachable.length} 人无法联系，建议通过户籍/居住地址多渠道触达`
+      });
+    }
+
+    const highRisk = d.filter(x => x.riskScore >= 70);
+    if (highRisk.length > 0) {
+      const totalExposure = highRisk.reduce((s, x) => s + x.overdueAmount, 0);
+      insights.push({
+        type: 'danger', icon: '⚠️',
+        title: '高风险客户',
+        text: `${highRisk.length} 人风险评分≥70，总风险敞口 ¥${totalExposure.toLocaleString()}`
+      });
+    }
+
+    const goodCustomers = d.filter(x => x.riskScore < 20 && x.repayWillingScore >= 70);
+    if (goodCustomers.length > 0) {
+      insights.push({
+        type: 'success', icon: '👑',
+        title: '优质客户',
+        text: `${goodCustomers.length} 人低风险高还款意愿，可推荐额度提升或交叉销售`
       });
     }
 
@@ -676,89 +756,52 @@ class CustomerAnalyzer {
     return { labels: Object.keys(counts), values: Object.values(counts) };
   }
 
-  calcTagDistribution(field) {
-    const counts = {};
-    this.processedData.forEach(d => {
-      const val = d[field];
-      if (val) {
-        val.split(/[,;，；、]/).map(t => t.trim()).filter(Boolean).forEach(tag => {
-          counts[tag] = (counts[tag] || 0) + 1;
-        });
-      }
-    });
-    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    return { labels: sorted.map(s => s[0]), values: sorted.map(s => s[1]) };
-  }
-
-  calcRFMDistribution() {
-    const counts = {};
-    this.processedData.forEach(d => {
-      counts[d.rfmSegment] = (counts[d.rfmSegment] || 0) + 1;
-    });
-    return { labels: Object.keys(counts), values: Object.values(counts) };
-  }
-
-  // ========== 分桶规则 ==========
+  // ========== 分桶 ==========
 
   getAgeBuckets() {
     return [
-      { label: '18-24', min: 18, max: 25 }, { label: '25-34', min: 25, max: 35 },
-      { label: '35-44', min: 35, max: 45 }, { label: '45-54', min: 45, max: 55 },
-      { label: '55+', min: 55, max: 150 }
+      { label: '22-30', min: 22, max: 31 }, { label: '31-40', min: 31, max: 41 },
+      { label: '41-50', min: 41, max: 51 }, { label: '51-60', min: 51, max: 61 }
     ];
   }
 
-  getConsumptionBuckets() {
+  getCreditLimitBuckets() {
     return [
-      { label: '0-1k', min: 0, max: 1000 }, { label: '1k-5k', min: 1000, max: 5000 },
-      { label: '5k-1w', min: 5000, max: 10000 }, { label: '1w-3w', min: 10000, max: 30000 },
-      { label: '3w-10w', min: 30000, max: 100000 }, { label: '10w+', min: 100000, max: Infinity }
+      { label: '0-1万', min: 0, max: 10000 }, { label: '1万-3万', min: 10000, max: 30000 },
+      { label: '3万-5万', min: 30000, max: 50000 }, { label: '5万-10万', min: 50000, max: 100000 },
+      { label: '10万+', min: 100000, max: Infinity }
     ];
   }
 
-  getFrequencyBuckets() {
+  getOverdueBuckets() {
     return [
-      { label: '低频(1-5天)', min: 1, max: 6 }, { label: '中频(6-15天)', min: 6, max: 16 },
-      { label: '高频(16-30天)', min: 16, max: 31 }
+      { label: '无逾期', min: 0, max: 1 }, { label: '1-30天', min: 1, max: 31 },
+      { label: '31-60天', min: 31, max: 61 }, { label: '61-90天', min: 61, max: 91 },
+      { label: '90天以上', min: 91, max: Infinity }
     ];
   }
 
-  getCLVBuckets() {
+  getOverdueAmountBuckets() {
     return [
-      { label: '0-5k', min: 0, max: 5000 }, { label: '5k-2w', min: 5000, max: 20000 },
-      { label: '2w-5w', min: 20000, max: 50000 }, { label: '5w-10w', min: 50000, max: 100000 },
-      { label: '10w+', min: 100000, max: Infinity }
-    ];
-  }
-
-  getChurnBuckets() {
-    return [
-      { label: '低风险(0-20)', min: 0, max: 20 }, { label: '中低(20-40)', min: 20, max: 40 },
-      { label: '中等(40-60)', min: 40, max: 60 }, { label: '中高(60-80)', min: 60, max: 80 },
-      { label: '高风险(80+)', min: 80, max: 101 }
-    ];
-  }
-
-  getAOVBuckets() {
-    return [
-      { label: '0-200', min: 0, max: 200 }, { label: '200-500', min: 200, max: 500 },
-      { label: '500-1000', min: 500, max: 1000 }, { label: '1000-2000', min: 1000, max: 2000 },
-      { label: '2000+', min: 2000, max: Infinity }
-    ];
-  }
-
-  getReturnRateBuckets() {
-    return [
-      { label: '0-5%', min: 0, max: 0.05 }, { label: '5-10%', min: 0.05, max: 0.10 },
-      { label: '10-20%', min: 0.10, max: 0.20 }, { label: '20%+', min: 0.20, max: 1 }
+      { label: '0', min: 0, max: 1 }, { label: '1-5千', min: 1, max: 5000 },
+      { label: '5千-2万', min: 5000, max: 20000 }, { label: '2万-5万', min: 20000, max: 50000 },
+      { label: '5万+', min: 50000, max: Infinity }
     ];
   }
 
   getScoreBuckets() {
     return [
-      { label: '1分', min: 1, max: 2 }, { label: '2分', min: 2, max: 3 },
-      { label: '3分', min: 3, max: 4 }, { label: '4分', min: 4, max: 5 },
-      { label: '5分', min: 5, max: 6 }
+      { label: '0-20', min: 0, max: 21 }, { label: '21-40', min: 21, max: 41 },
+      { label: '41-60', min: 41, max: 61 }, { label: '61-80', min: 61, max: 81 },
+      { label: '81-100', min: 81, max: 101 }
+    ];
+  }
+
+  getCardAgeBuckets() {
+    return [
+      { label: '0-6月', min: 0, max: 7 }, { label: '6-12月', min: 7, max: 13 },
+      { label: '1-3年', min: 13, max: 37 }, { label: '3-5年', min: 37, max: 61 },
+      { label: '5年+', min: 61, max: Infinity }
     ];
   }
 
@@ -766,25 +809,16 @@ class CustomerAnalyzer {
 
   exportReport(results) {
     const report = {
-      title: '客户画像深度分析报告',
+      title: '信用卡客户画像分析报告',
       generatedAt: new Date().toISOString(),
       summary: results.overview,
       insights: results.insights,
-      rfmAnalysis: {
-        distribution: results.rfm,
-        segments: results.clusters.map(c => ({
-          name: c.label, percentage: c.percentage + '%',
-          topRFM: c.topRFMSegments.map(r => r.name)
-        }))
-      },
       clusters: results.clusters.map(c => ({
         name: c.label, description: c.description, strategy: c.strategy,
-        percentage: c.percentage + '%', avgAge: c.avgAge,
-        avgConsumption: c.avgConsumption, avgCLV: c.avgCLV,
-        avgChurnRisk: c.avgChurnRisk, avgRepurchaseRate: c.avgRepurchaseRate + '%',
-        topRegions: c.topRegions.map(r => r.name),
-        topPreferences: c.topPreferences.map(p => p.name),
-        topChannels: c.topChannels.map(ch => ch.name)
+        urgentActions: c.urgentActions, percentage: c.percentage + '%',
+        avgRiskScore: c.avgRiskScore, avgRepayAbility: c.avgRepayAbility,
+        avgRepayWilling: c.avgRepayWilling, overdueRate: c.overdueRate + '%',
+        cashOutRate: c.cashOutRate + '%'
       })),
       distributions: results.distributions
     };
@@ -793,7 +827,7 @@ class CustomerAnalyzer {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `客户画像深度报告_${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `信用卡客户画像报告_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }

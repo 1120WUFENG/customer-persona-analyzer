@@ -258,6 +258,62 @@ tr:hover td { background: rgba(108,92,231,0.05); }
   color: var(--primary-light);
 }
 
+.dim-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.dim-group:last-child { border-bottom: none; }
+
+.dim-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary-light);
+  min-width: 100px;
+}
+
+.field-hint {
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.field-hint .tag {
+  font-size: 11px;
+  padding: 2px 8px;
+}
+
+.pct-badge {
+  font-size: 12px;
+  background: rgba(108,92,231,0.2);
+  color: var(--primary-light);
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+}
+
+.urgent-actions {
+  background: rgba(225,112,85,0.1);
+  border: 1px solid rgba(225,112,85,0.2);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.urgent-item {
+  font-size: 13px;
+  padding: 4px 0;
+  color: var(--text);
+}
+
 input[type="range"] {
   width: 200px;
   accent-color: var(--primary);
