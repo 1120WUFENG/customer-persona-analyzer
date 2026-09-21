@@ -553,6 +553,114 @@ input[type="range"] {
   color: var(--primary-light);
 }
 
+/* ========== 催收工具卡 ========== */
+.plan-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 16px;
+  background: var(--bg-hover);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tool-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tool-card {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  background: var(--bg-hover);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.tool-icon {
+  font-size: 36px;
+  flex-shrink: 0;
+}
+
+.tool-info { flex: 1; }
+
+.tool-name {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.tool-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.tool-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.tool-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ========== 法诉筛选 ========== */
+.court-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.court-stat {
+  text-align: center;
+  padding: 20px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.court-stat.eligible { border-color: #00b894; background: rgba(0,184,148,0.05); }
+.court-stat.filed { border-color: #74b9ff; background: rgba(116,185,255,0.05); }
+.court-stat.near { border-color: #fdcb6e; background: rgba(253,203,110,0.05); }
+
+.court-stat-value {
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary-light), var(--info));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.court-stat-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.court-stat-amount {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 4px;
+}
+
+.court-list h4 {
+  font-size: 15px;
+  margin-bottom: 12px;
+  color: var(--text-muted);
+}
+
 /* ========== 标签 ========== */
 .badge {
   display: inline-block;
